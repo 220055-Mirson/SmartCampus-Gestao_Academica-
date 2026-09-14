@@ -1,1 +1,1 @@
-# SmartCampus-Gestao_Academica-
+# SmartCampus-Gestao_Academica
