@@ -1,0 +1,142 @@
+openapi: 3.0.3
+info:
+  title: Smart Campus API - Módulo de Gestão Académica
+  version: 1.0.0
+  description: Documentação das rotas REST do Módulo de Gestão Académica (Department -> Course -> Subject).
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+security:
+  - BearerAuth: []
+paths:
+  /api/v1/departments:
+    get:
+      summary: Listar departamentos
+      responses:
+        '200':
+          description: Lista obtida com sucesso
+    post:
+      summary: Criar novo departamento
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDepartmentInput'
+      responses:
+        '201':
+          description: Criado com sucesso
+        '400':
+          description: Erro de Validação
+        '401':
+          description: Não autenticado
+        '403':
+          description: Acesso Negado
+
+  /api/v1/departments/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Consultar departamento
+      responses:
+        '200':
+          description: Sucesso
+        '404':
+          description: Departamento não encontrado
+    delete:
+      summary: Eliminar departamento
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Eliminado
+        '400':
+          description: Regra de negócio bloqueou eliminação
+
+  /api/v1/courses:
+    get:
+      summary: Listar cursos
+      responses:
+        '200':
+          description: Sucesso
+    post:
+      summary: Criar curso
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                courseName:
+                  type: string
+                description:
+                  type: string
+                departmentId:
+                  type: string
+      responses:
+        '201':
+          description: Curso criado
+
+  /api/v1/subjects:
+    get:
+      summary: Listar disciplinas
+      responses:
+        '200':
+          description: Sucesso
+    post:
+      summary: Criar disciplina
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                subjectName:
+                  type: string
+                description:
+                  type: string
+                credits:
+                  type: integer
+                courseId:
+                  type: string
+      responses:
+        '201':
+          description: Disciplina criada
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    CreateDepartmentInput:
+      type: object
+      required:
+        - code
+        - departmentName
+      properties:
+        code:
+          type: string
+          example: ISET
+        departmentName:
+          type: string
+          example: Instituto Superior de Engenharias e Tecnologias
+        description:
+          type: string
