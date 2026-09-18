@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 import { AcademicService } from '../application/academicService';
 import {
   createDepartmentSchema,
@@ -10,8 +11,25 @@ import {
 export const academicRouter = Router();
 const service = new AcademicService();
 
+// Token store dinâmico (em memória) — token => role
+const tokenStore = new Map<string, string>();
+
+// Endpoint simples para gerar tokens de teste dinamicamente
+// POST /api/v1/auth/login { "role": "ADMIN" }
+academicRouter.post('/auth/login', (req: any, res: Response) => {
+  const role = (req.body?.role || '').toString().toUpperCase();
+  const allowed = ['ADMIN', 'COORDINATOR', 'STUDENT'];
+  if (!allowed.includes(role)) {
+    return res.status(400).json({ code: 'INVALID_ROLE', message: `Role inválida. Use one of: ${allowed.join(', ')}` });
+  }
+  const token = randomUUID();
+  tokenStore.set(token, role);
+  res.status(201).json({ token, role });
+});
+
 // Middleware simulado de context/correlationId e Auth/RBAC
 const TOKEN_ROLE_MAP: Record<string, string> = {
+  // Mantém compatibilidade com tokens fixos antigos como fallback
   'fake-admin-token': 'ADMIN',
   'fake-coordinator-token': 'COORDINATOR',
   'fake-student-token': 'STUDENT'
@@ -22,7 +40,8 @@ const contextMiddleware = (req: any, res: any, next: any) => {
   // Extrai token do header Authorization: "Bearer <token>"
   const authHeader = (req.headers['authorization'] || '') as string;
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  const tokenRole = token ? TOKEN_ROLE_MAP[token] : undefined;
+  // Prioriza tokens dinâmicos gerados pelo /auth/login, senão fallback para mapa fixo
+  const tokenRole = token ? (tokenStore.get(token) || TOKEN_ROLE_MAP[token]) : undefined;
   // Prioriza role derivada do token, senão usa header `x-user-role` quando fornecido
   req.userRole = tokenRole || req.headers['x-user-role'];
   next();
@@ -120,6 +139,17 @@ academicRouter.post('/courses', checkAuthAndRole(['ADMIN', 'COORDINATOR']), asyn
 academicRouter.get('/subjects', async (req: any, res: Response) => {
   const data = await service.listSubjects(req.query.courseId as string);
   res.status(200).json({ data, meta: { correlationId: req.correlationId, total: data.length } });
+});
+
+// Return subjects for a specific course (route param)
+academicRouter.get('/courses/:courseId/subjects', async (req: any, res: Response) => {
+  try {
+    const courseId = req.params.courseId as string;
+    const data = await service.listSubjects(courseId);
+    res.status(200).json({ data, meta: { correlationId: req.correlationId, courseId, total: data.length } });
+  } catch (err: any) {
+    res.status(err.status || 500).json({ code: err.code || 'INTERNAL_ERROR', message: err.message, correlationId: req.correlationId });
+  }
 });
 
 academicRouter.post('/subjects', checkAuthAndRole(['ADMIN', 'COORDINATOR']), async (req: any, res: Response) => {
