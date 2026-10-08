@@ -1,0 +1,15 @@
+{
+  "name": "smart-campus",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm --prefix apps/api run build",
+    "build:api": "npm --prefix apps/api run build",
+    "dev": "npm --prefix apps/api run dev",
+    "dev:api": "npm --prefix apps/api run dev",
+    "test": "npm --prefix apps/api run test"
+  }
+}
